@@ -26,7 +26,7 @@ jobs:
   update:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -56,19 +56,8 @@ jobs:
           test -f "$formula"
           printf 'path=%s\n' "$formula" >> "$GITHUB_OUTPUT"
 
-      - name: Install and smoke test formula
-        env:
-          FORMULA_PATH: ${{ steps.formula.outputs.path }}
-        run: |
-          set -euo pipefail
-          test "$(uname -m)" = arm64
-          brew install --formula "$FORMULA_PATH"
-          formula=$(basename "$FORMULA_PATH" .rb)
-          prefix=$(brew --prefix "$formula")
-          "$prefix/bin/svw" --version
-          "$prefix/bin/svw" --help >/dev/null
-
-      - name: Commit formula update
+      - name: Prepare candidate formula commit
+        id: candidate
         env:
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
@@ -78,7 +67,27 @@ jobs:
           git config core.hooksPath .githooks
           git add Formula
           if git diff --cached --quiet; then
+            printf 'changed=false\n' >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git commit -m "brew: update svw for ${RELEASE_TAG}"
+          printf 'changed=true\n' >> "$GITHUB_OUTPUT"
+
+      - name: Install and smoke test formula
+        env:
+          FORMULA_PATH: ${{ steps.formula.outputs.path }}
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          formula=$(basename "$FORMULA_PATH" .rb)
+          brew tap svcomplex-dev/tap "file://$GITHUB_WORKSPACE"
+          brew install "svcomplex-dev/tap/$formula"
+          prefix=$(brew --prefix "svcomplex-dev/tap/$formula")
+          "$prefix/bin/svw" --version
+          "$prefix/bin/svw" --help >/dev/null
+
+      - name: Push tested formula update
+        if: steps.candidate.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
           git push origin HEAD:main
