@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import re
 import subprocess
 import tarfile
@@ -22,7 +23,11 @@ VERSION_OUTPUT = re.compile(r"^svw ([0-9]+\.[0-9]+\.[0-9]+)(?:\s|$)")
 
 
 def fetch(url):
-    request = Request(url, headers={"User-Agent": "svw-homebrew-tap-updater/1"})
+    headers = {"User-Agent": "svw-homebrew-tap-updater/1"}
+    token = os.environ.get("GITHUB_TOKEN", "")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = Request(url, headers=headers)
     with urlopen(request, timeout=120) as response:
         return response.read()
 
@@ -107,16 +112,17 @@ def binary_version(binary):
     return match.group(1)
 
 
-def class_name(versioned):
-    if not versioned:
+def class_name(channel):
+    if channel == "stable":
         return "Svw"
-    return "SvwAT" + "".join(versioned.split("."))
+    if channel == "latest":
+        return "SvwATLatest"
+    return "SvwAT" + "".join(channel.split("."))
 
 
-def render_formula(release_tag, version, digest, revision=0):
-    versioned = release_tag.removeprefix("release-") if release_tag != "latest" else ""
+def render_formula(release_tag, version, digest, channel, revision=0):
     lines = [
-        f"class {class_name(versioned)} < Formula",
+        f"class {class_name(channel)} < Formula",
         '  desc "Terminal waveform viewer for hardware design workflows"',
         '  homepage "https://svw.run"',
         f'  url "https://github.com/{REPOSITORY}/releases/download/{release_tag}/svw-{release_tag}-macos-arm64.tar.gz"',
@@ -133,7 +139,7 @@ def render_formula(release_tag, version, digest, revision=0):
             "  depends_on macos: :big_sur",
         ]
     )
-    if versioned:
+    if channel != "stable":
         lines.extend(["", "  keg_only :versioned_formula"])
     lines.extend(
         [
@@ -166,6 +172,23 @@ def current_formula_state(path):
     return version.group(1), digest.group(1), int(revision.group(1)) if revision else 0
 
 
+def semantic_version(value):
+    fields = value.split(".")
+    if len(fields) != 3 or any(not field.isdigit() for field in fields):
+        raise RuntimeError(f"formula has invalid semantic version: {value}")
+    return tuple(int(field) for field in fields)
+
+
+def write_formula(path, desired, immutable=False):
+    if path.exists() and path.read_text(encoding="utf-8") == desired:
+        return False
+    if immutable and path.exists():
+        raise RuntimeError(f"refusing to replace immutable versioned formula: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(desired, encoding="utf-8")
+    return True
+
+
 def update(root, release_tag, product_version=None):
     match = TAG_PATTERN.fullmatch(release_tag)
     if release_tag != "latest" and not match:
@@ -196,24 +219,43 @@ def update(root, release_tag, product_version=None):
     binary, digest = audited_binary(archive, release_tag, release_manifest)
 
     version = match.group(1) if match else (product_version or binary_version(binary))
-    path = root / "Formula" / (f"svw@{version}.rb" if match else "svw.rb")
-    old_version, old_digest, old_revision = current_formula_state(path)
-    if old_digest == digest:
-        revision = old_revision
-    else:
-        if match and path.exists():
-            raise RuntimeError(f"refusing to replace immutable versioned formula: {path}")
-        revision = old_revision + 1 if old_version == version and old_digest else 0
-    desired = render_formula(release_tag, version, digest, revision)
-    if path.exists() and path.read_text(encoding="utf-8") == desired:
+    if release_tag == "latest":
+        path = root / "Formula" / "svw@latest.rb"
+        old_version, old_digest, old_revision = current_formula_state(path)
+        revision = (
+            old_revision
+            if old_digest == digest
+            else old_revision + 1 if old_version == version and old_digest else 0
+        )
+        changed = write_formula(
+            path,
+            render_formula(release_tag, version, digest, "latest", revision),
+        )
         print(path)
-        return False
-    if match and path.exists():
-        raise RuntimeError(f"refusing to replace immutable versioned formula: {path}")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(desired, encoding="utf-8")
-    print(path)
-    return True
+        return changed
+
+    versioned_path = root / "Formula" / f"svw@{version}.rb"
+    versioned_changed = write_formula(
+        versioned_path,
+        render_formula(release_tag, version, digest, version),
+        immutable=True,
+    )
+
+    stable_path = root / "Formula" / "svw.rb"
+    old_version, old_digest, old_revision = current_formula_state(stable_path)
+    stable_changed = False
+    if old_version is None or semantic_version(version) >= semantic_version(old_version):
+        revision = (
+            old_revision
+            if old_digest == digest
+            else old_revision + 1 if old_version == version and old_digest else 0
+        )
+        stable_changed = write_formula(
+            stable_path,
+            render_formula(release_tag, version, digest, "stable", revision),
+        )
+    print(stable_path)
+    return versioned_changed or stable_changed
 
 
 def main():

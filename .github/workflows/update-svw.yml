@@ -6,6 +6,7 @@ on:
     paths:
       - .github/workflows/update-svw.yml
       - script/update-svw-formula.py
+      - script/test-update-svw-formula.py
   repository_dispatch:
     types: [svw-release-published]
   workflow_dispatch:
@@ -47,6 +48,7 @@ jobs:
       - name: Generate audited formula
         id: formula
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
@@ -55,6 +57,9 @@ jobs:
           formula=$(printf '%s\n' "$output" | sed -n '1p')
           test -f "$formula"
           printf 'path=%s\n' "$formula" >> "$GITHUB_OUTPUT"
+
+      - name: Test formula channel policy
+        run: python3 script/test-update-svw-formula.py
 
       - name: Prepare candidate formula commit
         id: candidate
@@ -88,9 +93,13 @@ jobs:
             -o "$installer"
           case "$RELEASE_TAG" in
             latest) installer_version=latest ;;
-            release-*) installer_version=${RELEASE_TAG#release-} ;;
+            release-*) installer_version=stable ;;
           esac
-          HOME="$RUNNER_TEMP/svw-home" sh "$installer" --version "$installer_version"
+          if [ "$installer_version" = stable ]; then
+            HOME="$RUNNER_TEMP/svw-home" sh "$installer"
+          else
+            HOME="$RUNNER_TEMP/svw-home" sh "$installer" --version "$installer_version"
+          fi
           prefix=$(brew --prefix "svcomplex-dev/tap/$formula")
           "$prefix/bin/svw" --version
           "$prefix/bin/svw" --help >/dev/null
