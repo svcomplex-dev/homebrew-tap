@@ -116,7 +116,7 @@ def class_name(channel):
     if channel == "stable":
         return "Svw"
     if channel == "latest":
-        return "SvwATLatest"
+        return "SvwLatest"
     return "SvwAT" + "".join(channel.split("."))
 
 
@@ -220,7 +220,7 @@ def update(root, release_tag, product_version=None):
 
     version = match.group(1) if match else (product_version or binary_version(binary))
     if release_tag == "latest":
-        path = root / "Formula" / "svw@latest.rb"
+        path = root / "Formula" / "svw-latest.rb"
         old_version, old_digest, old_revision = current_formula_state(path)
         revision = (
             old_revision

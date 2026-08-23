@@ -1,4 +1,4 @@
-class SvwATLatest < Formula
+class SvwLatest < Formula
   desc "Terminal waveform viewer for hardware design workflows"
   homepage "https://svw.run"
   url "https://github.com/svcomplex-dev/svw/releases/download/latest/svw-latest-macos-arm64.tar.gz"

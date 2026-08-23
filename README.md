@@ -10,7 +10,7 @@ The unversioned formula follows the newest immutable `release-X.Y.Z` release.
 Install the replaceable rolling build only when explicitly requested:
 
 ```sh
-brew install svcomplex-dev/tap/svw@latest
+brew install svcomplex-dev/tap/svw-latest
 ```
 
 Install a fixed release tag through its immutable versioned formula:
@@ -28,7 +28,7 @@ must use `code@svcomplex.ai` for both author and committer email addresses.
 
 `script/update-svw-formula.py` verifies the public Release manifest, checksum
 sidecar, archive checksum, package manifest and Mach-O payload before changing a
-formula. A `latest` event updates only `svw@latest`; a newer immutable release
+formula. A `latest` event updates only `svw-latest`; a newer immutable release
 updates both `svw` and its `svw@X.Y.Z` formula. The workflow serializes both event types;
 the authoritative Gitea release CI dispatches each update only after all GitHub
 Release assets have been published successfully.

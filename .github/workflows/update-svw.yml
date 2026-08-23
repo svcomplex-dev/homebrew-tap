@@ -81,12 +81,20 @@ jobs:
       - name: Install through the public installer and smoke test formula
         env:
           FORMULA_PATH: ${{ steps.formula.outputs.path }}
+          EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
           test "$(uname -m)" = arm64
           formula=$(basename "$FORMULA_PATH" .rb)
           brew tap svcomplex-dev/tap "file://$GITHUB_WORKSPACE"
+          if [ "$EVENT_NAME" = push ]; then
+            brew install "svcomplex-dev/tap/$formula"
+            prefix=$(brew --prefix "svcomplex-dev/tap/$formula")
+            "$prefix/bin/svw" --version
+            "$prefix/bin/svw" --help >/dev/null
+            exit 0
+          fi
           installer="$RUNNER_TEMP/install.sh"
           curl -fsSL --retry 3 \
             https://raw.githubusercontent.com/svcomplex-dev/svw/main/install.sh \

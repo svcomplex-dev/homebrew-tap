@@ -68,8 +68,8 @@ class FormulaUpdaterTest(unittest.TestCase):
 
     def test_latest_is_isolated_from_stable_formula(self):
         self.assertTrue(self.run_update("latest", "0.1.0"))
-        latest = (self.root / "Formula/svw@latest.rb").read_text()
-        self.assertIn("class SvwATLatest < Formula", latest)
+        latest = (self.root / "Formula/svw-latest.rb").read_text()
+        self.assertIn("class SvwLatest < Formula", latest)
         self.assertIn("releases/download/latest/", latest)
         self.assertFalse((self.root / "Formula/svw.rb").exists())
         self.assertFalse(self.run_update("latest", "0.1.0"))
