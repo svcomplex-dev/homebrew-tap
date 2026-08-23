@@ -3,9 +3,9 @@ class Svw < Formula
   homepage "https://svw.run"
   url "https://github.com/svcomplex-dev/svw/releases/download/release-0.1.0/svw-release-0.1.0-macos-arm64.tar.gz"
   version "0.1.0"
-  sha256 "615f6ea71f156dbda983d97c17115120bbbb73323d22a9572412903b0da9676a"
+  sha256 "3d8dadfb87e84ede95b9356d567f0e2368afa503c0aa09930dd6b70d311210e3"
   license "MIT"
-  revision 8
+  revision 9
 
   depends_on arch: :arm64
   depends_on macos: :big_sur
