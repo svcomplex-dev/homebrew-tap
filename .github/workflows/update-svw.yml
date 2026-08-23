@@ -73,15 +73,24 @@ jobs:
           git commit -m "brew: update svw for ${RELEASE_TAG}"
           printf 'changed=true\n' >> "$GITHUB_OUTPUT"
 
-      - name: Install and smoke test formula
+      - name: Install through the public installer and smoke test formula
         env:
           FORMULA_PATH: ${{ steps.formula.outputs.path }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
           test "$(uname -m)" = arm64
           formula=$(basename "$FORMULA_PATH" .rb)
           brew tap svcomplex-dev/tap "file://$GITHUB_WORKSPACE"
-          brew install "svcomplex-dev/tap/$formula"
+          installer="$RUNNER_TEMP/install.sh"
+          curl -fsSL --retry 3 \
+            https://raw.githubusercontent.com/svcomplex-dev/svw/main/install.sh \
+            -o "$installer"
+          case "$RELEASE_TAG" in
+            latest) installer_version=latest ;;
+            release-*) installer_version=${RELEASE_TAG#release-} ;;
+          esac
+          HOME="$RUNNER_TEMP/svw-home" sh "$installer" --version "$installer_version"
           prefix=$(brew --prefix "svcomplex-dev/tap/$formula")
           "$prefix/bin/svw" --version
           "$prefix/bin/svw" --help >/dev/null

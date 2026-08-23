@@ -24,3 +24,7 @@ sidecar, archive checksum, package manifest and Mach-O payload before changing a
 formula. The update workflow serializes `latest` and versioned release events;
 the authoritative Gitea release CI dispatches each update only after all GitHub
 Release assets have been published successfully.
+
+Every candidate formula is installed through svw's public `install.sh` on an
+Apple Silicon GitHub runner before the formula commit is pushed. This exercises
+the user-facing macOS installation path rather than only a direct Brew command.
