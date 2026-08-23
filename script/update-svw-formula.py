@@ -179,11 +179,9 @@ def semantic_version(value):
     return tuple(int(field) for field in fields)
 
 
-def write_formula(path, desired, immutable=False):
+def write_formula(path, desired):
     if path.exists() and path.read_text(encoding="utf-8") == desired:
         return False
-    if immutable and path.exists():
-        raise RuntimeError(f"refusing to replace immutable versioned formula: {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(desired, encoding="utf-8")
     return True
@@ -235,10 +233,19 @@ def update(root, release_tag, product_version=None):
         return changed
 
     versioned_path = root / "Formula" / f"svw@{version}.rb"
+    old_versioned_version, old_versioned_digest, old_versioned_revision = (
+        current_formula_state(versioned_path)
+    )
+    versioned_revision = (
+        old_versioned_revision
+        if old_versioned_digest == digest
+        else old_versioned_revision + 1
+        if old_versioned_version == version and old_versioned_digest
+        else 0
+    )
     versioned_changed = write_formula(
         versioned_path,
-        render_formula(release_tag, version, digest, version),
-        immutable=True,
+        render_formula(release_tag, version, digest, version, versioned_revision),
     )
 
     stable_path = root / "Formula" / "svw.rb"

@@ -6,14 +6,14 @@ Install `svw` on Apple Silicon macOS 11 or newer:
 brew install svcomplex-dev/tap/svw
 ```
 
-The unversioned formula follows the newest immutable `release-X.Y.Z` release.
+The unversioned formula follows the newest stable `release-X.Y.Z` release.
 Install the replaceable rolling build only when explicitly requested:
 
 ```sh
 brew install svcomplex-dev/tap/svw-latest
 ```
 
-Install a fixed release tag through its immutable versioned formula:
+Install a fixed release tag through its versioned formula:
 
 ```sh
 brew install svcomplex-dev/tap/svw@0.1.0
@@ -28,9 +28,11 @@ must use `code@svcomplex.ai` for both author and committer email addresses.
 
 `script/update-svw-formula.py` verifies the public Release manifest, checksum
 sidecar, archive checksum, package manifest and Mach-O payload before changing a
-formula. A `latest` event updates only `svw-latest`; a newer immutable release
-updates both `svw` and its `svw@X.Y.Z` formula. The workflow serializes both event types;
-the authoritative Gitea release CI dispatches each update only after all GitHub
+formula. A `latest` event updates only `svw-latest`; a newer stable release
+updates both `svw` and its `svw@X.Y.Z` formula. An explicitly authorized
+republish of an existing release tag advances both formula revisions when the
+asset checksum changes. The workflow serializes both event types; the
+authoritative Gitea release CI dispatches each update only after all GitHub
 Release assets have been published successfully.
 
 Every candidate formula is installed through svw's public `install.sh` on an

@@ -27,9 +27,9 @@ class FormulaUpdaterTest(unittest.TestCase):
     def tearDown(self):
         self.temporary.cleanup()
 
-    def run_update(self, tag, version):
+    def run_update(self, tag, version, archive_revision=""):
         archive_name = f"svw-{tag}-macos-arm64.tar.gz"
-        archive = f"archive:{tag}".encode()
+        archive = f"archive:{tag}:{archive_revision}".encode()
         digest = hashlib.sha256(archive).hexdigest()
         release = {
             "tag_name": tag,
@@ -87,12 +87,17 @@ class FormulaUpdaterTest(unittest.TestCase):
         self.assertFalse(self.run_update("release-0.1.0", "0.1.0"))
         self.assertIn("release-0.2.0", stable.read_text())
 
-    def test_versioned_formula_is_immutable(self):
+    def test_explicit_tag_republish_advances_formula_revisions(self):
         self.run_update("release-0.1.0", "0.1.0")
-        path = self.root / "Formula/svw@0.1.0.rb"
-        path.write_text(path.read_text().replace("0.1.0", "9.9.9", 1))
-        with self.assertRaisesRegex(RuntimeError, "refusing to replace immutable"):
-            self.run_update("release-0.1.0", "0.1.0")
+        versioned = self.root / "Formula/svw@0.1.0.rb"
+        stable = self.root / "Formula/svw.rb"
+        old_versioned = versioned.read_text()
+
+        self.assertTrue(self.run_update("release-0.1.0", "0.1.0", "republish"))
+        self.assertNotEqual(versioned.read_text(), old_versioned)
+        self.assertIn("  revision 1\n", versioned.read_text())
+        self.assertIn("  revision 1\n", stable.read_text())
+        self.assertFalse(self.run_update("release-0.1.0", "0.1.0", "republish"))
 
     def test_fetch_uses_actions_token_when_available(self):
         seen = {}
