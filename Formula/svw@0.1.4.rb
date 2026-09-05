@@ -1,4 +1,4 @@
-class Svw < Formula
+class SvwAT014 < Formula
   desc "Terminal waveform viewer for hardware design workflows"
   homepage "https://svw.run"
   url "https://github.com/svcomplex-dev/svw/releases/download/release-0.1.4/svw-release-0.1.4-macos-arm64.tar.gz"
@@ -8,6 +8,8 @@ class Svw < Formula
 
   depends_on arch: :arm64
   depends_on macos: :big_sur
+
+  keg_only :versioned_formula
 
   def install
     bin.install "bin/svw"
