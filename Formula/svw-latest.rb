@@ -2,10 +2,9 @@ class SvwLatest < Formula
   desc "Terminal waveform viewer for hardware design workflows"
   homepage "https://svw.run"
   url "https://github.com/svcomplex-dev/svw/releases/download/latest/svw-latest-macos-arm64.tar.gz"
-  version "0.1.4"
-  sha256 "f000bd543b77af19eaf41969ca4a9f05c9d47dc58358ebe61c1dcb1a70050b23"
+  version "0.1.5"
+  sha256 "f60a6583613c9290dc3d36000f07cfcf6942715816ebf0dedfd202f35932c6cd"
   license "MIT"
-  revision 7
 
   depends_on arch: :arm64
   depends_on macos: :big_sur
